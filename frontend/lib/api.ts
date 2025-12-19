@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4299';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://data-api.rubyshop.co.th';
 
 export async function fetchUsers() {
     const response = await fetch(`${API_BASE_URL}/users`);
