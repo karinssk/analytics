@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { fetchUsers } from '../lib/api';
 
 // Types (simplified)
 interface Message {
@@ -31,8 +32,7 @@ export default function Home() {
 
   // Fetch users on mount
   useEffect(() => {
-    fetch('http://localhost:4299/users')
-      .then((res) => res.json())
+    fetchUsers()
       .then((data) => {
         setUsers(data);
         setLoading(false);
@@ -91,8 +91,8 @@ export default function Home() {
                   >
                     <div
                       className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg shadow ${msg.sender === 'user'
-                          ? 'bg-white text-gray-800 border border-gray-200'
-                          : 'bg-blue-500 text-white'
+                        ? 'bg-white text-gray-800 border border-gray-200'
+                        : 'bg-blue-500 text-white'
                         }`}
                     >
                       <p>{msg.content}</p>
