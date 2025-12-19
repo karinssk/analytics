@@ -10,6 +10,7 @@ datasource db {
 model User {
   id        Int      @id @default(autoincrement())
   lineId    String?  @unique
+  facebookId String? @unique
   name      String?
   phone     String?
   address   String?
