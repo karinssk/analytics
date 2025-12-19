@@ -86,7 +86,7 @@ async function handleLineWebhook(req, res) {
                         messages: currentMessages
                     }
                 });
-
+                console.log(event.body)
                 console.log(`Processed message from LINE ${lineId}: ${text}`);
             }
         }
