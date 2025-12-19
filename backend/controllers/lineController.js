@@ -1,8 +1,22 @@
 const prisma = require('../config/prisma');
 const { extractUserInfo } = require('../services/extractionService');
+const line = require('@line/bot-sdk');
+
+const config = {
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET,
+};
+
+const client = config.channelAccessToken ? new line.Client(config) : null;
 
 async function handleLineWebhook(req, res) {
     try {
+        const signature = req.headers['x-line-signature'];
+        if (!line.validateSignature(req.rawBody, config.channelSecret, signature)) {
+            console.error('Invalid LINE signature');
+            return res.status(401).send('Invalid signature');
+        }
+
         const events = req.body.events;
         if (!events || events.length === 0) {
             return res.status(200).send('OK');
