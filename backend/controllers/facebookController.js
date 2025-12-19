@@ -74,17 +74,29 @@ async function handleWebhook(req, res) {
                         chat = await prisma.chat.create({
                             data: {
                                 userId: user.id,
+                                messages: []
                             },
                         });
                     }
 
                     // 4. Store message
-                    await prisma.message.create({
+                    const newMessage = {
+                        sender: 'user',
+                        content: text,
+                        createdAt: new Date().toISOString()
+                    };
+
+                    let currentMessages = chat.messages || [];
+                    if (!Array.isArray(currentMessages)) {
+                        currentMessages = [];
+                    }
+                    currentMessages.push(newMessage);
+
+                    await prisma.chat.update({
+                        where: { id: chat.id },
                         data: {
-                            chatId: chat.id,
-                            sender: 'user',
-                            content: text,
-                        },
+                            messages: currentMessages
+                        }
                     });
 
                     console.log(`Processed message from FB ${facebookId}: ${text}`);

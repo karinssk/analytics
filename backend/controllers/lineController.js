@@ -61,17 +61,30 @@ async function handleLineWebhook(req, res) {
                     chat = await prisma.chat.create({
                         data: {
                             userId: user.id,
+                            messages: [] // Init empty array
                         },
                     });
                 }
 
-                // 4. Store message
-                await prisma.message.create({
+                // 4. Store message in JSON array
+                const newMessage = {
+                    sender: 'user',
+                    content: text,
+                    createdAt: new Date().toISOString()
+                };
+
+                // Get current messages (it might be null or object, ensure array)
+                let currentMessages = chat.messages || [];
+                if (!Array.isArray(currentMessages)) {
+                    currentMessages = [];
+                }
+                currentMessages.push(newMessage);
+
+                await prisma.chat.update({
+                    where: { id: chat.id },
                     data: {
-                        chatId: chat.id,
-                        sender: 'user',
-                        content: text,
-                    },
+                        messages: currentMessages
+                    }
                 });
 
                 console.log(`Processed message from LINE ${lineId}: ${text}`);

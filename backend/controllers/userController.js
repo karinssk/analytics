@@ -4,11 +4,7 @@ async function getUsers(req, res) {
     try {
         const users = await prisma.user.findMany({
             include: {
-                chats: {
-                    include: {
-                        messages: true
-                    }
-                }
+                chats: true
             }
         });
         res.json(users);

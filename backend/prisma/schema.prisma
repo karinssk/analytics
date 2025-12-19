@@ -23,15 +23,7 @@ model Chat {
   id        Int       @id @default(autoincrement())
   userId    Int?
   user      User?     @relation(fields: [userId], references: [id])
-  messages  Message[]
+  messages  Json      @default("[]")
   createdAt DateTime  @default(now())
 }
 
-model Message {
-  id        Int      @id @default(autoincrement())
-  chatId    Int
-  chat      Chat     @relation(fields: [chatId], references: [id])
-  sender    String   // 'user' or 'bot'
-  content   String   @db.Text
-  createdAt DateTime @default(now())
-}
