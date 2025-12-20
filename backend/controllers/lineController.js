@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { extractUserInfo } = require('../services/extractionService');
 const line = require('@line/bot-sdk');
+const axios = require('axios');
 
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
@@ -8,6 +9,23 @@ const config = {
 };
 
 const client = config.channelAccessToken ? new line.Client(config) : null;
+
+async function getLineDisplayName(userId) {
+    try {
+        const res = await axios.get(
+            `https://api.line.me/v2/bot/profile/${userId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+                },
+            }
+        );
+        return res.data.displayName;
+    } catch (error) {
+        console.error('Error fetching LINE profile:', error.message);
+        return 'Unknown User';
+    }
+}
 
 async function handleLineWebhook(req, res) {
     try {
@@ -34,12 +52,22 @@ async function handleLineWebhook(req, res) {
                 });
 
                 if (!user) {
+                    const displayName = await getLineDisplayName(userId);
                     user = await prisma.user.create({
                         data: {
                             lineId: lineId,
-                            name: 'Unknown User',
+                            name: displayName,
                         },
                     });
+                } else if (user.name === 'Unknown User') {
+                     // Briefly try to update name if it was unknown (optional improvement)
+                     const displayName = await getLineDisplayName(userId);
+                     if (displayName !== 'Unknown User') {
+                         user = await prisma.user.update({
+                             where: { id: user.id },
+                             data: { name: displayName }
+                         });
+                     }
                 }
 
                 // 2. Extract info and update user if found
