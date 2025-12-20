@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { fetchUsers } from '../lib/api';
+import { useAuth } from '@/lib/AuthContext';
 import {
   Table,
   TableBody,
@@ -24,6 +26,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 // Types
 interface Message {
@@ -52,19 +55,30 @@ export default function Home() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const router = useRouter();
+  const { admin, isLoading: authLoading, logout } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !admin) {
+      router.push('/login');
+    }
+  }, [admin, authLoading, router]);
 
   // Fetch users on mount
   useEffect(() => {
-    fetchUsers()
-      .then((data) => {
-        setUsers(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch users', err);
-        setLoading(false);
-      });
-  }, []);
+    if (admin) {
+      fetchUsers()
+        .then((data) => {
+          setUsers(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch users', err);
+          setLoading(false);
+        });
+    }
+  }, [admin]);
 
   const handleRowClick = (user: User) => {
     setSelectedUser(user);
@@ -75,6 +89,20 @@ export default function Home() {
     return user.chats.reduce((total, chat) => total + chat.messages.length, 0);
   };
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!admin) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -84,81 +112,99 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-          <p className="text-muted-foreground mt-1">
-            View and manage customer information
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card">
+        <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold">Analytics Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Welcome, {admin.name || admin.email}
+            </p>
+          </div>
+          <Button variant="outline" onClick={logout}>
+            Logout
+          </Button>
         </div>
+      </header>
 
-        {/* Customer Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer List</CardTitle>
-            <CardDescription>
-              Click on a row to view detailed customer information
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>LINE ID</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead className="text-right">Messages</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.length === 0 ? (
+      {/* Main Content */}
+      <main className="p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold tracking-tight">Customers</h2>
+            <p className="text-muted-foreground mt-1">
+              View and manage customer information
+            </p>
+          </div>
+
+          {/* Customer Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer List</CardTitle>
+              <CardDescription>
+                Click on a row to view detailed customer information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No customers found
-                    </TableCell>
+                    <TableHead className="w-[80px]">ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>LINE ID</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead className="text-right">Messages</TableHead>
                   </TableRow>
-                ) : (
-                  users.map((user) => (
-                    <TableRow
-                      key={user.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => handleRowClick(user)}
-                    >
-                      <TableCell className="font-medium">{user.id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{user.name || 'Unknown User'}</span>
-                          {!user.name && (
-                            <Badge variant="secondary" className="text-xs">
-                              No Name
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">
-                        {user.lineId || '-'}
-                      </TableCell>
-                      <TableCell>{user.phone || '-'}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {user.address || '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={getTotalMessages(user) > 0 ? 'default' : 'outline'}>
-                          {getTotalMessages(user)}
-                        </Badge>
+                </TableHeader>
+                <TableBody>
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No customers found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                  ) : (
+                    users.map((user) => (
+                      <TableRow
+                        key={user.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleRowClick(user)}
+                      >
+                        <TableCell className="font-medium">{user.id}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span>{user.name || 'Unknown User'}</span>
+                            {!user.name && (
+                              <Badge variant="secondary" className="text-xs">
+                                No Name
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm text-muted-foreground">
+                          {user.lineId || '-'}
+                        </TableCell>
+                        <TableCell>{user.phone || '-'}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {user.address || '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={getTotalMessages(user) > 0 ? 'default' : 'outline'}>
+                            {getTotalMessages(user)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
 
       {/* Customer Detail Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

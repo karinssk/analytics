@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const webhookRoutes = require('./routes/webhookRoutes');
 const userRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/authRoutes');
 const lineController = require('./controllers/lineController'); // For legacy route
 
 const app = express();
@@ -24,6 +25,8 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/webhook', webhookRoutes);
 app.use('/users', userRoutes);
+app.use('/auth', authRoutes);
+
 
 // Legacy support: map old /webhook POST to LINE handler directly if needed
 // The original server.js had app.post('/webhook', ...).

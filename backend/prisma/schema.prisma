@@ -27,3 +27,12 @@ model Chat {
   createdAt DateTime  @default(now())
 }
 
+model Admin {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String?  // Nullable for Google-only users
+  googleId  String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
