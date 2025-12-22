@@ -35,20 +35,26 @@ async function handleWebhook(req, res) {
     try {
       for (const entry of body.entry) {
         const pageId = entry.id;
+        console.log(`Looking up page with Facebook pageId: ${pageId}`);
 
         // Find the page in our database
         const page = await prisma.page.findUnique({
           where: { pageId: pageId }
         });
 
+        console.log(`Page lookup result:`, page ? `Found page id=${page.id}` : 'NOT FOUND');
+
         if (!page) {
-          console.log(`Page ${pageId} not found in database`);
+          console.log(`Page ${pageId} not found in database - listing all pages...`);
+          const allPages = await prisma.page.findMany({ select: { id: true, pageId: true, name: true } });
+          console.log('All pages in DB:', allPages);
           continue;
         }
 
         // Process messaging events
         if (entry.messaging) {
           for (const event of entry.messaging) {
+            console.log(`Sender PSID: ${event.sender?.id}`);
             await processMessagingEvent(page, event);
           }
         }
