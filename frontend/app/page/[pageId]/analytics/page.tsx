@@ -19,6 +19,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { PageLayout } from '@/components/PageLayout';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4299';
 
@@ -94,38 +95,24 @@ export default function AnalyticsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="animate-pulse text-muted-foreground">Loading analytics...</div>
-            </div>
+            <PageLayout>
+                <div className="flex items-center justify-center h-full">
+                    <div className="animate-pulse text-muted-foreground">Loading analytics...</div>
+                </div>
+            </PageLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background">
-            {/* Header */}
-            <header className="border-b bg-card">
-                <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-xl font-bold">Analytics</h1>
-                        <p className="text-sm text-muted-foreground">Last {days} days</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => router.push(`/page/${pageId}/dashboard`)}>
-                            Dashboard
-                        </Button>
-                        <Button variant="outline" onClick={() => router.push(`/page/${pageId}/inbox`)}>
-                            Inbox
-                        </Button>
-                        <Button variant="ghost" onClick={() => router.push('/select-page')}>
-                            Switch Page
-                        </Button>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="p-8">
+        <PageLayout>
+            <div className="p-8">
                 <div className="max-w-6xl mx-auto">
+                    {/* Page Header */}
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold">Analytics</h1>
+                        <p className="text-muted-foreground mt-1">Last {days} days</p>
+                    </div>
+
                     {error && (
                         <div className="mb-6 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
                             {error}
@@ -228,7 +215,8 @@ export default function AnalyticsPage() {
                         </CardContent>
                     </Card>
                 </div>
-            </main>
-        </div>
+            </div>
+        </PageLayout>
     );
 }
+

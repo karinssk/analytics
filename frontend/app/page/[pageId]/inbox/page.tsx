@@ -5,12 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+    Badge
+} from '@/components/ui/badge';
+import { PageLayout } from '@/components/PageLayout';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4299';
 
@@ -175,157 +172,145 @@ export default function InboxPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="animate-pulse text-muted-foreground">Loading inbox...</div>
-            </div>
+            <PageLayout>
+                <div className="flex items-center justify-center h-full">
+                    <div className="animate-pulse text-muted-foreground">Loading inbox...</div>
+                </div>
+            </PageLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
-            {/* Header */}
-            <header className="border-b bg-card shrink-0">
-                <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-xl font-bold">Inbox</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
-                        </p>
+        <PageLayout>
+            <div className="flex flex-col h-full">
+                {error && (
+                    <div className="p-3 bg-destructive/10 text-destructive text-sm text-center shrink-0">
+                        {error}
+                        <button className="ml-2 underline" onClick={() => setError(null)}>Dismiss</button>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => router.push(`/page/${pageId}/dashboard`)}>
-                            Dashboard
-                        </Button>
-                        <Button variant="ghost" onClick={() => router.push('/select-page')}>
-                            Switch Page
-                        </Button>
-                    </div>
-                </div>
-            </header>
+                )}
 
-            {error && (
-                <div className="p-3 bg-destructive/10 text-destructive text-sm text-center">
-                    {error}
-                    <button className="ml-2 underline" onClick={() => setError(null)}>Dismiss</button>
-                </div>
-            )}
-
-            {/* Main Content */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* Thread List */}
-                <div className="w-80 border-r bg-card overflow-y-auto">
-                    {conversations.length === 0 ? (
-                        <div className="p-4 text-center text-muted-foreground">
-                            No conversations yet
+                {/* Main Content */}
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Thread List */}
+                    <div className="w-80 border-r bg-card overflow-y-auto shrink-0">
+                        <div className="p-4 border-b">
+                            <h2 className="font-semibold">Conversations</h2>
+                            <p className="text-sm text-muted-foreground">{conversations.length} threads</p>
                         </div>
-                    ) : (
-                        conversations.map((conv) => (
-                            <div
-                                key={conv.id}
-                                onClick={() => fetchMessages(conv.id)}
-                                className={`p-4 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-muted' : ''
-                                    }`}
-                            >
-                                <div className="flex items-start justify-between mb-1">
-                                    <span className="font-medium truncate flex-1">{conv.customerName}</span>
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                        {formatTimeAgo(conv.lastMessageAt)}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-muted-foreground truncate mb-2">
-                                    {conv.lastMessagePreview}
-                                </p>
-                                <Badge variant={conv.isReplyAllowed ? 'default' : 'secondary'} className="text-xs">
-                                    {conv.isReplyAllowed ? '✓ Can Reply' : '⏳ Waiting'}
-                                </Badge>
+                        {conversations.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">
+                                No conversations yet
                             </div>
-                        ))
-                    )}
-                </div>
-
-                {/* Chat Window */}
-                <div className="flex-1 flex flex-col">
-                    {selectedConversation ? (
-                        <>
-                            {/* Chat Header */}
-                            <div className="p-4 border-b bg-card">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className="font-semibold">{selectedConversation.customerName}</h2>
-                                        <p className="text-sm text-muted-foreground">
-                                            Last message: {formatTimeAgo(selectedConversation.lastCustomerMessageAt)}
-                                        </p>
+                        ) : (
+                            conversations.map((conv) => (
+                                <div
+                                    key={conv.id}
+                                    onClick={() => fetchMessages(conv.id)}
+                                    className={`p-4 border-b cursor-pointer hover:bg-muted/50 transition-colors ${selectedConversation?.id === conv.id ? 'bg-muted' : ''
+                                        }`}
+                                >
+                                    <div className="flex items-start justify-between mb-1">
+                                        <span className="font-medium truncate flex-1">{conv.customerName}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                            {formatTimeAgo(conv.lastMessageAt)}
+                                        </span>
                                     </div>
-                                    <Badge variant={selectedConversation.isReplyAllowed ? 'default' : 'destructive'}>
-                                        {selectedConversation.isReplyAllowed
-                                            ? formatTimeRemaining(selectedConversation.timeRemaining)
-                                            : '24h Window Expired'}
+                                    <p className="text-sm text-muted-foreground truncate mb-2">
+                                        {conv.lastMessagePreview}
+                                    </p>
+                                    <Badge variant={conv.isReplyAllowed ? 'default' : 'secondary'} className="text-xs">
+                                        {conv.isReplyAllowed ? '✓ Can Reply' : '⏳ Waiting'}
                                     </Badge>
                                 </div>
-                            </div>
+                            ))
+                        )}
+                    </div>
 
-                            {/* Messages */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                {messages.map((msg) => (
-                                    <div
-                                        key={msg.id}
-                                        className={`flex ${msg.direction === 'OUTBOUND' ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        <div
-                                            className={`max-w-[70%] p-3 rounded-lg ${msg.direction === 'OUTBOUND'
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'bg-muted'
-                                                }`}
-                                        >
-                                            <p className="text-sm">{msg.content}</p>
-                                            <p className={`text-xs mt-1 ${msg.direction === 'OUTBOUND'
-                                                    ? 'text-primary-foreground/70'
-                                                    : 'text-muted-foreground'
-                                                }`}>
-                                                {new Date(msg.timestamp).toLocaleTimeString()}
+                    {/* Chat Window */}
+                    <div className="flex-1 flex flex-col">
+                        {selectedConversation ? (
+                            <>
+                                {/* Chat Header */}
+                                <div className="p-4 border-b bg-card shrink-0">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h2 className="font-semibold">{selectedConversation.customerName}</h2>
+                                            <p className="text-sm text-muted-foreground">
+                                                Last message: {formatTimeAgo(selectedConversation.lastCustomerMessageAt)}
                                             </p>
                                         </div>
+                                        <Badge variant={selectedConversation.isReplyAllowed ? 'default' : 'destructive'}>
+                                            {selectedConversation.isReplyAllowed
+                                                ? formatTimeRemaining(selectedConversation.timeRemaining)
+                                                : '24h Window Expired'}
+                                        </Badge>
                                     </div>
-                                ))}
-                                <div ref={messagesEndRef} />
-                            </div>
+                                </div>
 
-                            {/* Reply Box */}
-                            <div className="p-4 border-t bg-card">
-                                {selectedConversation.isReplyAllowed ? (
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                            placeholder="Type a message..."
-                                            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                            disabled={sending}
-                                        />
-                                        <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
-                                            {sending ? 'Sending...' : 'Send'}
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="text-center p-4 bg-muted rounded-lg">
-                                        <p className="text-muted-foreground">
-                                            ⏳ Waiting for customer message
-                                        </p>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                            The 24-hour messaging window has expired. You can reply once the customer sends a new message.
-                                        </p>
-                                    </div>
-                                )}
+                                {/* Messages */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    {messages.map((msg) => (
+                                        <div
+                                            key={msg.id}
+                                            className={`flex ${msg.direction === 'OUTBOUND' ? 'justify-end' : 'justify-start'}`}
+                                        >
+                                            <div
+                                                className={`max-w-[70%] p-3 rounded-lg ${msg.direction === 'OUTBOUND'
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'bg-muted'
+                                                    }`}
+                                            >
+                                                <p className="text-sm">{msg.content}</p>
+                                                <p className={`text-xs mt-1 ${msg.direction === 'OUTBOUND'
+                                                    ? 'text-primary-foreground/70'
+                                                    : 'text-muted-foreground'
+                                                    }`}>
+                                                    {new Date(msg.timestamp).toLocaleTimeString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                {/* Reply Box */}
+                                <div className="p-4 border-t bg-card shrink-0">
+                                    {selectedConversation.isReplyAllowed ? (
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newMessage}
+                                                onChange={(e) => setNewMessage(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                                placeholder="Type a message..."
+                                                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                                disabled={sending}
+                                            />
+                                            <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
+                                                {sending ? 'Sending...' : 'Send'}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center p-4 bg-muted rounded-lg">
+                                            <p className="text-muted-foreground">
+                                                ⏳ Waiting for customer message
+                                            </p>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                The 24-hour messaging window has expired.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                                Select a conversation to start chatting
                             </div>
-                        </>
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                            Select a conversation to start chatting
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
+        </PageLayout>
     );
 }
