@@ -31,7 +31,7 @@ export default function LoginPage() {
 
     // Redirect if already logged in
     if (admin) {
-        router.push('/');
+        router.push('/connect/meta');
         return null;
     }
 
@@ -42,7 +42,7 @@ export default function LoginPage() {
 
         try {
             await login(email, password);
-            router.push('/');
+            router.push('/connect/meta');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Login failed');
         } finally {
@@ -78,7 +78,7 @@ export default function LoginPage() {
                 try {
                     setLoading(true);
                     await googleLogin(response.credential);
-                    router.push('/');
+                    router.push('/connect/meta');
                 } catch (err) {
                     setError(err instanceof Error ? err.message : 'Google login failed');
                 } finally {
