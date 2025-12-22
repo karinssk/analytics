@@ -24,6 +24,7 @@ async function authMiddleware(req, res, next) {
         }
 
         req.admin = admin;
+        req.adminId = admin.id;  // Convenience accessor
         next();
     } catch (error) {
         console.error('Auth middleware error:', error);

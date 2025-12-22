@@ -28,11 +28,109 @@ model Chat {
 }
 
 model Admin {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String?  // Nullable for Google-only users
-  googleId  String?  @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int              @id @default(autoincrement())
+  email           String           @unique
+  password        String?          // Nullable for Google-only users
+  googleId        String?          @unique
+  metaId          String?          @unique
+  metaAccessToken String?          @db.Text
+  name            String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  workspaces      AdminWorkspace[]
+}
+
+// Workspace for multi-tenant support
+model Workspace {
+  id        Int              @id @default(autoincrement())
+  name      String
+  createdAt DateTime         @default(now())
+  pages     Page[]
+  admins    AdminWorkspace[]
+}
+
+// Admin-Workspace relation for roles
+model AdminWorkspace {
+  id          Int       @id @default(autoincrement())
+  adminId     Int
+  admin       Admin     @relation(fields: [adminId], references: [id])
+  workspaceId Int
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  role        String    @default("agent") // owner | admin | agent
+  createdAt   DateTime  @default(now())
+
+  @@unique([adminId, workspaceId])
+}
+
+// Connected Facebook Pages  
+model Page {
+  id            Int            @id @default(autoincrement())
+  pageId        String         @unique // Facebook Page ID
+  name          String
+  workspaceId   Int?
+  workspace     Workspace?     @relation(fields: [workspaceId], references: [id])
+  isConnected   Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  pageToken     PageToken?
+  conversations Conversation[]
+  dailyMetrics  DailyMetric[]
+}
+
+// Encrypted Page Access Token
+model PageToken {
+  id          Int       @id @default(autoincrement())
+  pageId      Int       @unique
+  page        Page      @relation(fields: [pageId], references: [id])
+  accessToken String    @db.Text // Encrypted token
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Conversation thread per customer
+model Conversation {
+  id                    Int       @id @default(autoincrement())
+  pageId                Int
+  page                  Page      @relation(fields: [pageId], references: [id])
+  psid                  String    // Customer's Page Scoped ID
+  customerName          String?
+  lastCustomerMessageAt DateTime?
+  lastMessageAt         DateTime?
+  lastMessagePreview    String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  messages              Message[]
+
+  @@unique([pageId, psid])
+  @@index([pageId, lastMessageAt])
+}
+
+// Individual messages
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  direction      String       // INBOUND | OUTBOUND
+  content        String       @db.Text
+  messageId      String?      // Facebook message ID
+  timestamp      DateTime
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, timestamp])
+}
+
+// Daily aggregated metrics
+model DailyMetric {
+  id            Int      @id @default(autoincrement())
+  pageId        Int
+  page          Page     @relation(fields: [pageId], references: [id])
+  date          DateTime @db.Date
+  messagesCount Int      @default(0)
+  uniqueSenders Int      @default(0)
+  videoViews    Int      @default(0)
+  engagement    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@unique([pageId, date])
 }
