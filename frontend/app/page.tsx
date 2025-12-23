@@ -143,12 +143,12 @@ export default function Home() {
           {isCustomerViewDisabled ? (
             <Card>
               <CardHeader>
-                <CardTitle>Customer List</CardTitle>
+                <CardTitle>Developing plz select the pages</CardTitle>
                 <CardDescription>Currently unavailable</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center text-lg font-semibold text-muted-foreground py-10">
-                  developing
+                  go to select the pages at https://data.rubyshop.co.th/select-page
                 </div>
               </CardContent>
             </Card>
