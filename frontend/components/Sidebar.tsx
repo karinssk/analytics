@@ -44,6 +44,16 @@ export function Sidebar({ className }: SidebarProps) {
             ),
         },
         {
+            title: 'Line Report',
+            href: '/line-report',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a4 4 0 014-4h6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h6m0 0l-2-2m2 2l-2 2" />
+                </svg>
+            ),
+        },
+        {
             title: 'LINE Users',
             href: '/line-users',
             icon: (

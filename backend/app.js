@@ -10,6 +10,7 @@ const metaAuthRoutes = require('./routes/metaAuthRoutes');
 const metaPagesRoutes = require('./routes/metaPagesRoutes');
 const inboxRoutes = require('./routes/inboxRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const lineController = require('./controllers/lineController'); // For legacy route
 
 const app = express();
@@ -39,9 +40,9 @@ app.use('/auth', metaAuthRoutes);  // Meta OAuth routes (/auth/meta, /auth/meta/
 app.use('/meta', metaPagesRoutes);  // Meta pages routes (/meta/pages, etc.)
 app.use('/inbox', inboxRoutes);     // Inbox routes (/inbox/pages/:pageId/conversations, etc.)
 app.use('/analytics', analyticsRoutes); // Analytics routes (/analytics/pages/:pageId/metrics)
+app.use('/reports', reportRoutes); // Reporting routes
 
 // Legacy support: map old /webhook POST to LINE handler directly if needed
 app.post('/webhook', lineController.handleLineWebhook);
 
 module.exports = app;
-
