@@ -225,14 +225,22 @@ function buildFlexMessage(report) {
     contents: [
       {
         type: 'text',
-        text: 'Facebook statics (New PSIDs)',
+        text: 'สถิติ Facebook',
         weight: 'bold',
         size: 'sm'
+      },
+      {
+        type: 'box',
+        layout: 'baseline',
+        contents: [
+          { type: 'text', text: ' ', size: 'sm', flex: 2 },
+          { type: 'text', text: 'ลูกค้าใหม่', size: 'sm', align: 'end', weight: 'bold' }
+        ]
       },
       ...pageItems,
       {
         type: 'text',
-        text: `Total: ${report.facebook.totalNewPsids || 0}`,
+        text: `รวม: ${report.facebook.totalNewPsids || 0}`,
         size: 'sm',
         weight: 'bold',
         align: 'end',
@@ -256,7 +264,7 @@ function buildFlexMessage(report) {
         type: 'box',
         layout: 'baseline',
         contents: [
-          { type: 'text', text: 'Total users', size: 'sm', flex: 2 },
+          { type: 'text', text: 'ผู้ใช้ทั้งหมด', size: 'sm', flex: 2 },
           { type: 'text', text: String(report.line.totalUsers || 0), size: 'sm', align: 'end' }
         ]
       },
@@ -264,7 +272,7 @@ function buildFlexMessage(report) {
         type: 'box',
         layout: 'baseline',
         contents: [
-          { type: 'text', text: 'Total messages', size: 'sm', flex: 2 },
+          { type: 'text', text: 'จำนวนข้อความ', size: 'sm', flex: 2 },
           { type: 'text', text: String(report.line.totalMessages || 0), size: 'sm', align: 'end' }
         ]
       }
@@ -283,7 +291,7 @@ function buildFlexMessage(report) {
         contents: [
           {
             type: 'text',
-            text: `report ${report.date}`,
+            text: `รายงาน ${report.date}`,
             weight: 'bold',
             size: 'lg'
           }
