@@ -190,6 +190,11 @@ function formatReportMessage(report) {
 }
 
 function buildFlexMessage(report) {
+  const truncateName = (name) => {
+    if (!name) return '';
+    return name.length > 26 ? `${name.slice(0, 23)}...` : name;
+  };
+
   const pageItems = (report.facebook.pages || []).map((p) => ({
     type: 'box',
     layout: 'baseline',
@@ -197,7 +202,7 @@ function buildFlexMessage(report) {
     contents: [
       {
         type: 'text',
-        text: p.pageName || p.pageId,
+        text: truncateName(p.pageName || p.pageId),
         flex: 2,
         size: 'sm',
         wrap: true,
