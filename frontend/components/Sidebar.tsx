@@ -26,6 +26,15 @@ export function Sidebar({ className }: SidebarProps) {
         //     ),
         // },
         {
+            title: 'All Pages',
+            href: '/analytics',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+                </svg>
+            ),
+        },
+        {
             title: 'Connect Meta',
             href: '/connect/meta',
             icon: (
@@ -138,4 +147,3 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
     );
 }
-

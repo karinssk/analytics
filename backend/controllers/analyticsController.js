@@ -290,6 +290,81 @@ async function getNewPsids(req, res) {
   }
 }
 
+// Get new PSIDs grouped by page for a date range
+async function getNewPsidsAllPages(req, res) {
+  const { range = 'week', from, to } = req.query;
+
+  try {
+    const { startDate, endDate } = getDateRange(range, from, to);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date range' });
+    }
+
+    const adminWorkspaces = await prisma.adminWorkspace.findMany({
+      where: { adminId: req.adminId },
+      select: { workspaceId: true }
+    });
+    const workspaceIds = adminWorkspaces.map(w => w.workspaceId);
+
+    const pageWhere = workspaceIds.length
+      ? { workspaceId: { in: workspaceIds } }
+      : {};
+
+    const pages = await prisma.page.findMany({
+      where: pageWhere,
+      select: { id: true, pageId: true, name: true }
+    });
+
+    if (!pages.length) {
+      return res.json({
+        range: {
+          preset: from || to ? 'custom' : range,
+          start: startDate.toISOString(),
+          end: endDate.toISOString()
+        },
+        totalNewPsids: 0,
+        pages: []
+      });
+    }
+
+    const grouped = await prisma.conversation.groupBy({
+      by: ['pageId'],
+      where: {
+        pageId: { in: pages.map(p => p.id) },
+        createdAt: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      _count: { id: true }
+    });
+
+    const rows = pages.map(page => {
+      const match = grouped.find(g => g.pageId === page.id);
+      return {
+        pageId: page.pageId,
+        pageName: page.name,
+        newPsids: match?._count.id || 0
+      };
+    });
+
+    const totalNewPsids = rows.reduce((sum, r) => sum + r.newPsids, 0);
+
+    res.json({
+      range: {
+        preset: from || to ? 'custom' : range,
+        start: startDate.toISOString(),
+        end: endDate.toISOString()
+      },
+      totalNewPsids,
+      pages: rows
+    });
+  } catch (error) {
+    console.error('Error fetching new PSIDs for all pages:', error);
+    res.status(500).json({ error: 'Failed to fetch new PSIDs by page' });
+  }
+}
+
 // Sync metrics from Meta (for video views and engagement)
 async function syncMetrics(req, res) {
   const { pageId } = req.params;
@@ -390,5 +465,6 @@ module.exports = {
   getMetricsToday,
   getMetricsRange,
   getNewPsids,
+  getNewPsidsAllPages,
   syncMetrics
 };

@@ -14,6 +14,7 @@ router.get('/pages/:pageId/metrics/range', analyticsController.getMetricsRange);
 
 // Get new PSIDs (first-time contacts) for a date range
 router.get('/pages/:pageId/new-psids', analyticsController.getNewPsids);
+router.get('/pages/new-psids', analyticsController.getNewPsidsAllPages);
 
 // Sync metrics from Meta (video views, engagement)
 router.post('/pages/:pageId/metrics/sync', analyticsController.syncMetrics);
