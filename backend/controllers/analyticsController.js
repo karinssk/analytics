@@ -1,6 +1,39 @@
 const prisma = require('../config/prisma');
 const axios = require('axios');
 
+function getDateRange(range, from, to) {
+  const now = new Date();
+  const endDate = to ? new Date(to) : new Date(now);
+  endDate.setHours(23, 59, 59, 999);
+
+  let startDate;
+  if (from) {
+    startDate = new Date(from);
+  } else {
+    switch (range) {
+      case 'today': {
+        startDate = new Date(endDate);
+        break;
+      }
+      case 'month': {
+        startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+        break;
+      }
+      case 'week':
+      default: {
+        startDate = new Date(endDate);
+        const day = startDate.getDay();
+        const offset = day === 0 ? 6 : day - 1; // Start week on Monday
+        startDate.setDate(startDate.getDate() - offset);
+      }
+    }
+  }
+
+  startDate.setHours(0, 0, 0, 0);
+
+  return { startDate, endDate };
+}
+
 // Get today's metrics for a page
 async function getMetricsToday(req, res) {
   const { pageId } = req.params;
@@ -170,6 +203,93 @@ async function getMetricsRange(req, res) {
   }
 }
 
+// Get new PSIDs (first-time conversations) for a date range
+async function getNewPsids(req, res) {
+  const { pageId } = req.params;
+  const { range = 'week', from, to } = req.query;
+
+  try {
+    const page = await prisma.page.findUnique({
+      where: { pageId: pageId },
+      select: { id: true, name: true, pageId: true }
+    });
+
+    if (!page) {
+      return res.status(404).json({ error: 'Page not found' });
+    }
+
+    const { startDate, endDate } = getDateRange(range, from, to);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date range' });
+    }
+
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        pageId: page.id,
+        createdAt: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      select: {
+        psid: true,
+        createdAt: true
+      }
+    });
+
+    const countsByDate = conversations.reduce((acc, conv) => {
+      const dateKey = conv.createdAt.toISOString().split('T')[0];
+      acc[dateKey] = (acc[dateKey] || 0) + 1;
+      return acc;
+    }, {});
+
+    const rows = [];
+    const cursor = new Date(startDate);
+    cursor.setHours(0, 0, 0, 0);
+    while (cursor <= endDate) {
+      const dateKey = cursor.toISOString().split('T')[0];
+      rows.push({
+        date: dateKey,
+        newPsids: countsByDate[dateKey] || 0
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(todayStart);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayNewPsids = await prisma.conversation.count({
+      where: {
+        pageId: page.id,
+        createdAt: {
+          gte: todayStart,
+          lt: tomorrow
+        }
+      }
+    });
+
+    res.json({
+      pageId: page.pageId,
+      pageName: page.name,
+      range: {
+        preset: from || to ? 'custom' : range,
+        start: startDate.toISOString(),
+        end: endDate.toISOString()
+      },
+      totals: {
+        newPsids: conversations.length
+      },
+      todayNewPsids,
+      rows
+    });
+  } catch (error) {
+    console.error('Error fetching new PSIDs:', error);
+    res.status(500).json({ error: 'Failed to fetch new PSIDs' });
+  }
+}
+
 // Sync metrics from Meta (for video views and engagement)
 async function syncMetrics(req, res) {
   const { pageId } = req.params;
@@ -269,5 +389,6 @@ async function syncMetrics(req, res) {
 module.exports = {
   getMetricsToday,
   getMetricsRange,
+  getNewPsids,
   syncMetrics
 };

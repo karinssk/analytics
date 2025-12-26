@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -10,6 +11,14 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { PageLayout } from '@/components/PageLayout';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4299';
@@ -22,6 +31,28 @@ interface Metrics {
     engagement: number;
 }
 
+type RangePreset = 'today' | 'week' | 'month';
+
+interface NewPsidRow {
+    date: string;
+    newPsids: number;
+}
+
+interface NewPsidResponse {
+    pageId: string;
+    pageName: string;
+    range: {
+        preset: string;
+        start: string;
+        end: string;
+    };
+    totals: {
+        newPsids: number;
+    };
+    todayNewPsids: number;
+    rows: NewPsidRow[];
+}
+
 export default function DashboardPage() {
     const params = useParams();
     const router = useRouter();
@@ -30,10 +61,22 @@ export default function DashboardPage() {
     const [metrics, setMetrics] = useState<Metrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [pageName, setPageName] = useState<string>('');
+
+    const [rangePreset, setRangePreset] = useState<RangePreset>('week');
+    const [newPsidRows, setNewPsidRows] = useState<NewPsidRow[]>([]);
+    const [todayNewPsids, setTodayNewPsids] = useState<number>(0);
+    const [rangeTotalNewPsids, setRangeTotalNewPsids] = useState<number>(0);
+    const [newPsidError, setNewPsidError] = useState<string | null>(null);
+    const [newPsidLoading, setNewPsidLoading] = useState<boolean>(true);
 
     useEffect(() => {
         fetchMetrics();
     }, [pageId]);
+
+    useEffect(() => {
+        fetchNewPsidStats(rangePreset);
+    }, [pageId, rangePreset]);
 
     const fetchMetrics = async () => {
         try {
@@ -64,6 +107,43 @@ export default function DashboardPage() {
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchNewPsidStats = async (range: RangePreset) => {
+        setNewPsidLoading(true);
+        try {
+            const token = Cookies.get('auth_token');
+            if (!token) {
+                router.push('/connect/meta');
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/analytics/pages/${pageId}/new-psids?range=${range}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    router.push('/connect/meta');
+                    return;
+                }
+                throw new Error('Failed to fetch new PSID stats');
+            }
+
+            const data: NewPsidResponse = await response.json();
+            setNewPsidRows(data.rows || []);
+            setTodayNewPsids(data.todayNewPsids || 0);
+            setRangeTotalNewPsids(data.totals?.newPsids || 0);
+            setPageName(data.pageName || '');
+            setNewPsidError(null);
+        } catch (err) {
+            setNewPsidError('Failed to load new PSID stats');
+            console.error(err);
+        } finally {
+            setNewPsidLoading(false);
         }
     };
 
@@ -155,6 +235,97 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* New PSID Table */}
+                    <Card className="mb-8">
+                        <CardHeader className="pb-4">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <CardTitle className="text-xl">New PSIDs</CardTitle>
+                                    <CardDescription>
+                                        First-time contacts captured per day
+                                    </CardDescription>
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        {pageName ? `${pageName} • ` : ''}Today: <span className="font-semibold text-foreground">{todayNewPsids}</span> new {todayNewPsids === 1 ? 'user' : 'users'}
+                                    </p>
+                                </div>
+                                <div className="inline-flex rounded-lg border bg-muted/50 p-1">
+                                    {(['today', 'week', 'month'] as RangePreset[]).map((preset) => (
+                                        <Button
+                                            key={preset}
+                                            size="sm"
+                                            variant={rangePreset === preset ? 'default' : 'ghost'}
+                                            className="capitalize"
+                                            onClick={() => setRangePreset(preset)}
+                                        >
+                                            {preset === 'today' && 'Today'}
+                                            {preset === 'week' && 'This Week'}
+                                            {preset === 'month' && 'This Month'}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {newPsidError && (
+                                <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                                    {newPsidError}
+                                </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground mb-4">
+                                <span>
+                                    Tracking first messages from new PSIDs. <span className="text-foreground font-semibold">{rangeTotalNewPsids}</span> new {rangeTotalNewPsids === 1 ? 'contact' : 'contacts'} in this range.
+                                </span>
+                                <span className="text-foreground font-medium capitalize">
+                                    {rangePreset === 'week' ? 'This Week' : rangePreset === 'month' ? 'This Month' : 'Today'}
+                                </span>
+                            </div>
+
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Page</TableHead>
+                                        <TableHead className="text-right">New PSIDs</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {newPsidLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                                Loading new PSIDs...
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : newPsidRows.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                                No new contacts in this range
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        newPsidRows.map((row) => (
+                                            <TableRow key={row.date}>
+                                                <TableCell>
+                                                    {new Date(row.date).toLocaleDateString('en-US', {
+                                                        weekday: 'short',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    {pageName || 'Current Page'}
+                                                </TableCell>
+                                                <TableCell className="text-right font-semibold">
+                                                    {row.newPsids}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
 
                     {/* Alert for no activity */}
                     {metrics && metrics.messagesCount === 0 && metrics.uniqueSenders === 0 && (
