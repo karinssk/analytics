@@ -189,16 +189,125 @@ function formatReportMessage(report) {
   return [header, fbSection, '', lineSection].join('\n');
 }
 
+function buildFlexMessage(report) {
+  const pageItems = (report.facebook.pages || []).map((p) => ({
+    type: 'box',
+    layout: 'baseline',
+    spacing: 'sm',
+    contents: [
+      {
+        type: 'text',
+        text: p.pageName || p.pageId,
+        flex: 2,
+        size: 'sm',
+        wrap: true,
+        weight: 'bold'
+      },
+      {
+        type: 'text',
+        text: String(p.newPsids || 0),
+        flex: 1,
+        size: 'sm',
+        align: 'end'
+      }
+    ]
+  }));
+
+  const fbSection = {
+    type: 'box',
+    layout: 'vertical',
+    spacing: 'xs',
+    contents: [
+      {
+        type: 'text',
+        text: 'Facebook statics (New PSIDs)',
+        weight: 'bold',
+        size: 'sm'
+      },
+      ...pageItems,
+      {
+        type: 'text',
+        text: `Total: ${report.facebook.totalNewPsids || 0}`,
+        size: 'sm',
+        weight: 'bold',
+        align: 'end',
+        margin: 'md'
+      }
+    ]
+  };
+
+  const lineSection = {
+    type: 'box',
+    layout: 'vertical',
+    spacing: 'xs',
+    contents: [
+      {
+        type: 'text',
+        text: 'LINE statics',
+        weight: 'bold',
+        size: 'sm'
+      },
+      {
+        type: 'box',
+        layout: 'baseline',
+        contents: [
+          { type: 'text', text: 'Total users', size: 'sm', flex: 2 },
+          { type: 'text', text: String(report.line.totalUsers || 0), size: 'sm', align: 'end' }
+        ]
+      },
+      {
+        type: 'box',
+        layout: 'baseline',
+        contents: [
+          { type: 'text', text: 'Total messages', size: 'sm', flex: 2 },
+          { type: 'text', text: String(report.line.totalMessages || 0), size: 'sm', align: 'end' }
+        ]
+      }
+    ]
+  };
+
+  return {
+    type: 'flex',
+    altText: `report ${report.date}`,
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: `report ${report.date}`,
+            weight: 'bold',
+            size: 'lg'
+          }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'md',
+        contents: [
+          fbSection,
+          { type: 'separator', margin: 'md' },
+          lineSection
+        ]
+      }
+    }
+  };
+}
+
 async function deliverReport(report) {
   if (!LINE_ACCESS_TOKEN || !LINE_REPORT_TO) {
     throw new Error('LINE reporting env vars missing');
   }
-  const text = formatReportMessage(report);
+  const flexMessage = buildFlexMessage(report);
   await axios.post(
     'https://api.line.me/v2/bot/message/push',
     {
       to: LINE_REPORT_TO,
-      messages: [{ type: 'text', text }]
+      messages: [flexMessage]
     },
     {
       headers: {
