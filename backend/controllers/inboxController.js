@@ -38,13 +38,20 @@ async function getConversations(req, res) {
     const conversations = await prisma.conversation.findMany({
       where: { pageId: page.id },
       orderBy: { lastMessageAt: 'desc' },
-      take: 50
+      take: 50,
+      include: {
+        page: {
+          select: { name: true, pageId: true }
+        }
+      }
     });
 
     // Add computed fields
     const conversationsWithStatus = conversations.map(conv => ({
       id: conv.id,
       psid: conv.psid,
+      pageName: conv.page?.name || 'Unknown Page',
+      pagePid: conv.page?.pageId || '',
       customerName: conv.customerName || 'Unknown User',
       lastMessageAt: conv.lastMessageAt,
       lastMessagePreview: conv.lastMessagePreview,
@@ -57,6 +64,51 @@ async function getConversations(req, res) {
 
   } catch (error) {
     console.error('Error fetching conversations:', error);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+}
+
+// Get conversations across all pages available to the admin
+async function getAllConversations(req, res) {
+  try {
+    const adminWorkspaces = await prisma.adminWorkspace.findMany({
+      where: { adminId: req.adminId },
+      select: { workspaceId: true }
+    });
+    const workspaceIds = adminWorkspaces.map(w => w.workspaceId);
+
+    const pages = await prisma.page.findMany({
+      where: workspaceIds.length ? { workspaceId: { in: workspaceIds } } : {},
+      select: { id: true, name: true, pageId: true }
+    });
+
+    const pageIdMap = new Map(pages.map(p => [p.id, p]));
+
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        pageId: { in: pages.map(p => p.id) }
+      },
+      orderBy: { lastMessageAt: 'desc' },
+      take: 100,
+      include: { page: { select: { name: true, pageId: true } } }
+    });
+
+    const conversationsWithStatus = conversations.map(conv => ({
+      id: conv.id,
+      psid: conv.psid,
+      pageName: conv.page?.name || pageIdMap.get(conv.pageId)?.name || 'Unknown Page',
+      pagePid: conv.page?.pageId || pageIdMap.get(conv.pageId)?.pageId || '',
+      customerName: conv.customerName || 'Unknown User',
+      lastMessageAt: conv.lastMessageAt,
+      lastMessagePreview: conv.lastMessagePreview,
+      lastCustomerMessageAt: conv.lastCustomerMessageAt,
+      isReplyAllowed: isReplyAllowed(conv.lastCustomerMessageAt),
+      timeRemaining: getTimeRemaining(conv.lastCustomerMessageAt)
+    }));
+
+    res.json({ conversations: conversationsWithStatus });
+  } catch (error) {
+    console.error('Error fetching all conversations:', error);
     res.status(500).json({ error: 'Failed to fetch conversations' });
   }
 }
@@ -208,6 +260,7 @@ async function sendMessage(req, res) {
 
 module.exports = {
   getConversations,
+  getAllConversations,
   getMessages,
   sendMessage
 };

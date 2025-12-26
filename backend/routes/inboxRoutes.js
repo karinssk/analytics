@@ -6,6 +6,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 // All routes require authentication
 router.use(authMiddleware);
 
+// Get conversations across all pages
+router.get('/conversations', inboxController.getAllConversations);
+
 // Get conversations for a page
 router.get('/pages/:pageId/conversations', inboxController.getConversations);
 
