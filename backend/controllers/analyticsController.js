@@ -365,6 +365,71 @@ async function getNewPsidsAllPages(req, res) {
   }
 }
 
+// Get page insights (engagement, impressions) for a recent window
+async function getPageInsights(req, res) {
+  const { pageId } = req.params;
+  const { days = 7 } = req.query;
+
+  try {
+    const page = await prisma.page.findUnique({
+      where: { pageId },
+      include: { pageToken: true }
+    });
+
+    if (!page || !page.pageToken?.accessToken) {
+      return res.status(404).json({ error: 'Page or access token not found' });
+    }
+
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(end);
+    start.setDate(start.getDate() - parseInt(days) + 1);
+    start.setHours(0, 0, 0, 0);
+
+    const since = Math.floor(start.getTime() / 1000);
+    const until = Math.floor(end.getTime() / 1000);
+
+    const metrics = ['page_impressions', 'page_engaged_users'];
+    const response = await axios.get(`https://graph.facebook.com/v18.0/${page.pageId}/insights`, {
+      params: {
+        access_token: page.pageToken.accessToken,
+        metric: metrics.join(','),
+        period: 'day',
+        since,
+        until
+      }
+    });
+
+    const totals = { impressions: 0, engagedUsers: 0 };
+    const series = { impressions: [], engagedUsers: [] };
+
+    if (response.data?.data) {
+      for (const metric of response.data.data) {
+        const target = metric.name === 'page_engaged_users' ? 'engagedUsers' : 'impressions';
+        for (const v of metric.values || []) {
+          const date = v.end_time ? v.end_time.split('T')[0] : '';
+          const val = Number(v.value || 0);
+          series[target].push({ date, value: val });
+          totals[target] += val;
+        }
+      }
+    }
+
+    res.json({
+      range: {
+        days: parseInt(days),
+        start: start.toISOString(),
+        end: end.toISOString()
+      },
+      totals,
+      series
+    });
+  } catch (error) {
+    console.error('Error fetching page insights:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch page insights' });
+  }
+}
+
 // Sync metrics from Meta (for video views and engagement)
 async function syncMetrics(req, res) {
   const { pageId } = req.params;
@@ -465,6 +530,7 @@ module.exports = {
   getMetricsToday,
   getMetricsRange,
   getNewPsids,
+  getPageInsights,
   getNewPsidsAllPages,
   syncMetrics
 };

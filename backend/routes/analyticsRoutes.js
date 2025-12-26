@@ -16,6 +16,9 @@ router.get('/pages/:pageId/metrics/range', analyticsController.getMetricsRange);
 router.get('/pages/:pageId/new-psids', analyticsController.getNewPsids);
 router.get('/pages/new-psids', analyticsController.getNewPsidsAllPages);
 
+// Get page insights (impressions, engagement)
+router.get('/pages/:pageId/insights', analyticsController.getPageInsights);
+
 // Sync metrics from Meta (video views, engagement)
 router.post('/pages/:pageId/metrics/sync', analyticsController.syncMetrics);
 

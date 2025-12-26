@@ -12,7 +12,8 @@ const SCOPES = [
   'pages_show_list',
   'pages_manage_metadata',
   'pages_messaging',
-  'pages_read_engagement'
+  'pages_read_engagement',
+  'read_insights'
 ].join(',');
 
 // Redirect to Meta OAuth

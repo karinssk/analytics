@@ -70,6 +70,10 @@ export default function DashboardPage() {
     const [newPsidError, setNewPsidError] = useState<string | null>(null);
     const [newPsidLoading, setNewPsidLoading] = useState<boolean>(true);
 
+    const [insightsTotals, setInsightsTotals] = useState<{ impressions: number; engagedUsers: number }>({ impressions: 0, engagedUsers: 0 });
+    const [insightsError, setInsightsError] = useState<string | null>(null);
+    const [insightsLoading, setInsightsLoading] = useState<boolean>(true);
+
     useEffect(() => {
         fetchMetrics();
     }, [pageId]);
@@ -77,6 +81,10 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchNewPsidStats(rangePreset);
     }, [pageId, rangePreset]);
+
+    useEffect(() => {
+        fetchInsights();
+    }, [pageId]);
 
     const fetchMetrics = async () => {
         try {
@@ -107,6 +115,32 @@ export default function DashboardPage() {
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchInsights = async () => {
+        setInsightsLoading(true);
+        try {
+            const token = Cookies.get('auth_token');
+            if (!token) {
+                router.push('/connect/meta');
+                return;
+            }
+            const res = await fetch(`${API_URL}/analytics/pages/${pageId}/insights?days=7`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to fetch insights');
+            const data = await res.json();
+            setInsightsTotals({
+                impressions: data?.totals?.impressions || 0,
+                engagedUsers: data?.totals?.engagedUsers || 0
+            });
+            setInsightsError(null);
+        } catch (err) {
+            console.error(err);
+            setInsightsError('Failed to load insights');
+        } finally {
+            setInsightsLoading(false);
         }
     };
 
@@ -232,6 +266,40 @@ export default function DashboardPage() {
                                 <p className="text-sm text-muted-foreground">
                                     People engaged with your page
                                 </p>
+                            </CardContent>
+                        </Card>
+                        {/* Impressions (7d) */}
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Impressions (7d)</CardDescription>
+                                <CardTitle className="text-4xl font-bold">
+                                    {insightsLoading ? '—' : insightsTotals.impressions}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Views across your content this week
+                                </p>
+                                {insightsError && (
+                                    <p className="text-xs text-destructive mt-2">{insightsError}</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                        {/* Engaged Users (7d) */}
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Engaged Users (7d)</CardDescription>
+                                <CardTitle className="text-4xl font-bold">
+                                    {insightsLoading ? '—' : insightsTotals.engagedUsers}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    People who interacted with your page this week
+                                </p>
+                                {insightsError && (
+                                    <p className="text-xs text-destructive mt-2">{insightsError}</p>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
